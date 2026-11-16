@@ -1,0 +1,41 @@
+{
+  "slug": "digonto-sheets",
+  "name": "Digonto Sheets",
+  "version": "1.3.6",
+  "comment": "Spreadsheets with formulas, charts, XLSX and CSV",
+  "entry": "digonto_sheets.py",
+  "files": [
+    "digonto_sheets.py",
+    "digonto_ui.py",
+    "digonto_office.py",
+    "sheetkit",
+    "assets",
+    "requirements.txt",
+    "README.txt"
+  ],
+  "requirements": "requirements.txt",
+  "check": "import PySide6.QtWidgets; import sheetkit.formula, sheetkit.model, sheetkit.grid",
+  "needs_tk": false,
+  "apt": [
+    "libxcb-cursor0"
+  ],
+  "macos_min": 11,
+  "categories": "Office;Spreadsheet;",
+  "keywords": "spreadsheet;excel;xlsx;csv;formula;",
+  "wm_class": "digonto-sheets",
+  "mime": [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "text/csv",
+    "application/x-digonto-sheet"
+  ],
+  "legacy": {
+    "linux": [],
+    "darwin": [],
+    "windows": []
+  },
+  "extensions": [
+    ".dsht",
+    ".xlsx",
+    ".csv"
+  ]
+}
