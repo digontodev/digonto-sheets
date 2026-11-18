@@ -1750,6 +1750,9 @@ class SheetsWindow(QMainWindow):
         self.update_title()
         ui.add_recent(SLUG, path)
         self.stat_msg.setText(f"Opened {os.path.basename(path)}")
+        fams = [getattr(st, "font", None) for st in getattr(wb, "styles", [])]
+        if any(not ui.font_installed(x) for x in fams):
+            QTimer.singleShot(150, lambda: ui.note_missing_fonts(self, fams))
 
     def save(self, as_new=False):
         self.grid.commit_edit() if self.grid.editor else None
