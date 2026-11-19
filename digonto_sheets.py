@@ -93,14 +93,28 @@ class SheetsWindow(QMainWindow):
         wl.addWidget(self.build_formula_bar())
         wl.addWidget(self.grid, 1)
         wl.addWidget(self.build_tabs())
-        self.start = office.StartScreen(SLUG, "Digonto Sheets", "Spreadsheets with formulas, charts, XLSX and CSV.", [
-            ("+", "Blank spreadsheet", "Start with an empty sheet.", self.start_new),
-            ("\u2197", "Open ...", "Open a file from this computer, a recent file or a folder shortcut.", self.open_dialog)])
-        self.start.open_recent.connect(self.open_path)
+        self.start = ui.StartScreen(
+            "Spreadsheets with formulas and charts - XLSX, ODS and CSV",
+            [("Blank spreadsheet", "new", self.start_new, True), ("Open …", "open", self.open_dialog, False)],
+            "or drop a spreadsheet here", lambda: [r["path"] for r in office.recent_files(SLUG)], self.open_path)
         self.stack = QStackedWidget()
         self.stack.addWidget(self.start)
         self.stack.addWidget(self.work)
-        cl.addWidget(self.stack, 1)
+        self.rail = ui.Rail(
+            [("new", "new", "New spreadsheet (Ctrl+N)", self.start_new),
+             ("open", "open", "Open (Ctrl+O)", self.open_dialog),
+             ("save", "save", "Save (Ctrl+S)", self.save),
+             ("export", "export", "Save as / export", self.rail_export),
+             ("print", "print", "Print (Ctrl+P)", self.print_sheet),
+             None,
+             ("find", "search", "Find and replace (Ctrl+F)", lambda: self.show_find(False)),
+             ("functions", "numbers", "Insert a function", self.insert_function)],
+            [("settings", "settings", "Settings and help", self.rail_settings)])
+        body = QHBoxLayout()
+        body.setSpacing(0)
+        body.addWidget(self.rail)
+        body.addWidget(self.stack, 1)
+        cl.addLayout(body, 1)
         self.setCentralWidget(central)
         self.build_status()
         self.suggest = Suggest(self)
@@ -253,9 +267,6 @@ class SheetsWindow(QMainWindow):
 
     def build_toolbars(self):
         t1, t2 = self.tb1, self.tb2
-        for a in (self.a_new, self.a_open, self.a_save, self.a_pdf):
-            t1.addAction(a)
-        t1.addSeparator()
         t1.addAction(self.a_undo)
         t1.addAction(self.a_redo)
         t1.addAction(self.a_paintfmt)
@@ -1693,13 +1704,31 @@ class SheetsWindow(QMainWindow):
     def on_start(self):
         return hasattr(self, "stack") and self.stack.currentWidget() is self.start
 
+    def rail_export(self):
+        m = QMenu(self)
+        m.addAction("Save as …", lambda: self.save(True))
+        m.addAction("Export PDF …", self.export_pdf)
+        b = self.rail.button("export")
+        m.exec(b.mapToGlobal(b.rect().topRight()))
+
+    def rail_settings(self):
+        m = QMenu(self)
+        m.addAction("Function list …", self.insert_function)
+        m.addAction("Keyboard shortcuts", self.shortcuts_help)
+        m.addSeparator()
+        m.addAction(f"About {APP_NAME}", self.about)
+        b = self.rail.button("settings")
+        m.exec(b.mapToGlobal(b.rect().topRight()))
+
     def show_start(self):
         self.start.refresh()
+        self.rail.set_enabled(["save", "export", "print", "find", "functions"], False)
         self.stack.setCurrentWidget(self.start)
         self.statusBar().setVisible(False)
         self.setWindowTitle(APP_NAME)
 
     def show_editor(self):
+        self.rail.set_enabled(["save", "export", "print", "find", "functions"], True)
         self.stack.setCurrentWidget(self.work)
         self.statusBar().setVisible(True)
         self.update_title()
@@ -1750,6 +1779,9 @@ class SheetsWindow(QMainWindow):
         self.update_title()
         ui.add_recent(SLUG, path)
         self.stat_msg.setText(f"Opened {os.path.basename(path)}")
+        fams = [getattr(st, "font", None) for st in getattr(wb, "styles", [])]
+        if any(not ui.font_installed(x) for x in fams):
+            QTimer.singleShot(150, lambda: ui.note_missing_fonts(self, fams))
 
     def save(self, as_new=False):
         self.grid.commit_edit() if self.grid.editor else None
